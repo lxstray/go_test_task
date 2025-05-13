@@ -2,6 +2,8 @@ package main
 
 import (
 	"gotask/internal/app"
+	"gotask/internal/config"
+	"gotask/internal/database"
 	"log"
 	"os"
 	"os/signal"
@@ -11,9 +13,13 @@ import (
 func main() {
 	log.Println("Starting application")
 
-	//TODO: вынести порт и тд в конфиг
-	application := app.New(8080)
+	cfg := config.GetConfig()
 
+	db := database.NewPostgresDB(cfg)
+
+	application := app.New(cfg, db)
+
+	//TODO: если приложение запускается в горутине(как и должно быть), не выводится ошибки подключения к постгре
 	go application.MustRun()
 
 	//graceful shutdown

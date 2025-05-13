@@ -2,7 +2,9 @@ package app
 
 import (
 	"fmt"
-	"gotask/internal/handler"
+	"gotask/internal/config"
+	"gotask/internal/database"
+	handler "gotask/internal/handlers"
 	"io"
 
 	"log"
@@ -15,7 +17,7 @@ type App struct {
 	port    int
 }
 
-func New(port int) *App {
+func New(cfg *config.Config, db database.Database) *App {
 	e := echo.New()
 	//решил убрать банер и инфу о старте сервера -_-
 	e.HideBanner = true
@@ -27,7 +29,7 @@ func New(port int) *App {
 
 	return &App{
 		HTTPSrv: e,
-		port:    port,
+		port:    cfg.Server.Port,
 	}
 }
 
