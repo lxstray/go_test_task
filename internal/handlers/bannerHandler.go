@@ -2,6 +2,6 @@ package handlers
 
 import "github.com/labstack/echo/v4"
 
-type BannerHanderl interface {
+type BannerHandler interface {
 	GetBannerAuction(c echo.Context) error
 }

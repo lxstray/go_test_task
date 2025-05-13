@@ -13,7 +13,7 @@ type bannerHttpHandler struct {
 	bannerService services.BannerService
 }
 
-func NewBannerHttpHandler(bannerService services.BannerService) BannerHanderl {
+func NewBannerHttpHandler(bannerService services.BannerService) BannerHandler {
 	return &bannerHttpHandler{bannerService: bannerService}
 }
 
@@ -22,11 +22,11 @@ func NewBannerHttpHandler(bannerService services.BannerService) BannerHanderl {
 func (b *bannerHttpHandler) GetBannerAuction(c echo.Context) error {
 	geo := c.QueryParam("geo")
 	if geo == "" {
-		return fmt.Errorf("Missing required parameter: geo")
+		return fmt.Errorf("missing required parameter: geo")
 	}
 	feature := c.QueryParam("feature")
 	if feature == "" {
-		return fmt.Errorf("Missing required parameter: feature")
+		return fmt.Errorf("missing required parameter: feature")
 	}
 
 	intFeature, err := strconv.Atoi(feature)
