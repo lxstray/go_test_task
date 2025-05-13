@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"gotask/internal/config"
 	"gotask/internal/database"
-	handler "gotask/internal/handlers"
+	"gotask/internal/handlers"
+	"gotask/internal/repositories"
+	"gotask/internal/services"
 	"io"
 
 	"log"
@@ -14,7 +16,8 @@ import (
 
 type App struct {
 	HTTPSrv *echo.Echo
-	port    int
+	Db      database.Database
+	Cfg     *config.Config
 }
 
 func New(cfg *config.Config, db database.Database) *App {
@@ -23,30 +26,30 @@ func New(cfg *config.Config, db database.Database) *App {
 	e.HideBanner = true
 	e.Logger.SetOutput(io.Discard)
 
-	handler := handler.NewHandler()
-
-	e.GET("/banners/auction", handler.GetBannerAuction)
-
 	return &App{
 		HTTPSrv: e,
-		port:    cfg.Server.Port,
+		Db:      db,
+		Cfg:     cfg,
 	}
 }
 
-func (a *App) MustRun() {
-	if err := a.Run(); err != nil {
-		panic(err)
-	}
-}
-
-func (a *App) Run() error {
+func (a *App) Run() {
 	const op = "app.Run"
 
-	log.Println("Starting server on port", a.port)
+	a.initBannerHttpHandler()
+	log.Println("Starting server on port", a.Cfg.Server.Port)
 
-	if err := a.HTTPSrv.Start(fmt.Sprintf(":%d", a.port)); err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+	if err := a.HTTPSrv.Start(fmt.Sprintf(":%d", a.Cfg.Server.Port)); err != nil {
+		panic(fmt.Errorf("%s: %w", op, err))
 	}
 
-	return nil
+}
+
+func (a *App) initBannerHttpHandler() {
+	bannerPostgresRepo := repositories.NewBannerPostgresRepo(a.Db)
+	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo)
+	bannerHttpHandler := handlers.NewBannerHttpHandler(bannerServiceImpl)
+
+	bannerRoutes := a.HTTPSrv.Group("v1/banners")
+	bannerRoutes.GET("/auction", bannerHttpHandler.GetBannerAuction)
 }

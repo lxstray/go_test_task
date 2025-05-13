@@ -20,7 +20,7 @@ func main() {
 	application := app.New(cfg, db)
 
 	//TODO: если приложение запускается в горутине(как и должно быть), не выводится ошибки подключения к постгре
-	go application.MustRun()
+	go application.Run()
 
 	//graceful shutdown
 	stop := make(chan os.Signal, 1)
