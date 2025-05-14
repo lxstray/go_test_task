@@ -17,7 +17,7 @@ func NewBannerHttpHandler(bannerService services.BannerService) BannerHandler {
 	return &bannerHttpHandler{bannerService: bannerService}
 }
 
-//TODO: переделать работу с ошибками(отправлять их клиенту)
+//TODO: переделать работу с ошибками(отправлять их клиенту) и bannerApiHandler
 
 func (b *bannerHttpHandler) GetBannerAuction(c echo.Context) error {
 	geo := c.QueryParam("geo")

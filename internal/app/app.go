@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"gotask/api"
 	"gotask/internal/config"
 	"gotask/internal/database"
 	"gotask/internal/handlers"
@@ -49,7 +50,9 @@ func (a *App) initBannerHttpHandler() {
 	bannerPostgresRepo := repositories.NewBannerPostgresRepo(a.Db)
 	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo)
 	bannerHttpHandler := handlers.NewBannerHttpHandler(bannerServiceImpl)
+	bannerApiHandler := handlers.NewBannerApiHandler(bannerServiceImpl)
 
-	bannerRoutes := a.HTTPSrv.Group("v1/banners")
-	bannerRoutes.GET("/auction", bannerHttpHandler.GetBannerAuction)
+	bannerRoutes := a.HTTPSrv.Group("v1")
+	bannerRoutes.GET("/banners/auction", bannerHttpHandler.GetBannerAuction)
+	api.RegisterHandlers(bannerRoutes, bannerApiHandler)
 }
