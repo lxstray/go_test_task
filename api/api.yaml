@@ -1,0 +1,227 @@
+openapi: 3.0.3
+info:
+  title: Banners API
+  version: 1.0.0
+servers:
+  - url: /v1
+paths:
+  /banners:
+    get:
+      summary: Получить список баннеров
+      operationId: getBanners
+      responses:
+        '200':
+          description: Список баннеров
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Banner'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      summary: Создать новый баннер
+      operationId: createBanner
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerInput'
+      responses:
+        '201':
+          description: Баннер успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /banners/{id}:
+    get:
+      summary: Получить баннер по ID
+      operationId: getBannerById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Баннер найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '404':
+          description: Баннер не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Обновить баннер
+      operationId: updateBanner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerInput'
+      responses:
+        '200':
+          description: Баннер успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '400':
+          description: Неверный запрос
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Баннер не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      summary: Удалить баннер
+      operationId: deleteBanner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Баннер успешно удален
+        '404':
+          description: Баннер не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Banner:
+      type: object
+      required:
+        - id
+        - name
+        - image
+        - cpm
+        - geo
+        - feature
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Уникальный идентификатор баннера
+        name:
+          type: string
+          maxLength: 255
+          description: Название баннера
+        image:
+          type: string
+          description: URL или путь к изображению баннера
+        cpm:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000
+          description: Стоимость за тысячу показов
+        geo:
+          type: string
+          maxLength: 2
+          description: Географический код (2 символа, например, RU, US)
+        feature:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Числовая характеристика баннера
+    BannerInput:
+      type: object
+      required:
+        - name
+        - image
+        - cpm
+        - geo
+        - feature
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          description: Название баннера
+        image:
+          type: string
+          description: URL или путь к изображению баннера
+        cpm:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1000
+          description: Стоимость за тысячу показов
+        geo:
+          type: string
+          maxLength: 2
+          description: Географический код (2 символа, например, RU, US)
+        feature:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Числовая характеристика баннера
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Описание ошибки
