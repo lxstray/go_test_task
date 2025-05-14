@@ -2,6 +2,7 @@ package services
 
 import (
 	"fmt"
+	"gotask/internal/cache"
 	"gotask/internal/models"
 	"gotask/internal/repositories"
 	"unicode/utf8"
@@ -11,10 +12,14 @@ import (
 
 type bannerServiceImpl struct {
 	bannerRepo repositories.BannerRepo
+	cache      cache.BannerCache
 }
 
-func NewBannerServiceImpl(bannerRepo repositories.BannerRepo) BannerService {
-	return &bannerServiceImpl{bannerRepo: bannerRepo}
+func NewBannerServiceImpl(bannerRepo repositories.BannerRepo, cache cache.BannerCache) BannerService {
+	return &bannerServiceImpl{
+		bannerRepo: bannerRepo,
+		cache:      cache,
+	}
 }
 
 func (b *bannerServiceImpl) RunBannerAuction(geo string, feature int) (*models.Banner, error) {
@@ -26,9 +31,17 @@ func (b *bannerServiceImpl) RunBannerAuction(geo string, feature int) (*models.B
 		return nil, fmt.Errorf("feature must be between 0 and 100")
 	}
 
+	if cachedBanner, found := b.cache.Get(geo, feature); found {
+		return cachedBanner, nil
+	}
+
 	banner, err := b.bannerRepo.SelectTopBanner(geo, feature)
 	if err != nil {
 		return nil, err
+	}
+
+	if banner != nil {
+		b.cache.Set(geo, feature, banner, 0) // 0 это дефолтный TTL
 	}
 
 	return banner, nil
@@ -72,6 +85,8 @@ func (b *bannerServiceImpl) CreateBanner(input *models.Banner) error {
 	if err != nil {
 		return fmt.Errorf("failed to create banner: %w", err)
 	}
+
+	b.cache.Invalidate(input.ID)
 	return nil
 }
 
@@ -96,6 +111,8 @@ func (b *bannerServiceImpl) UpdateBanner(id uuid.UUID, input *models.Banner) err
 	if err != nil {
 		return fmt.Errorf("failed to update banner: %w", err)
 	}
+
+	b.cache.Invalidate(id)
 	return nil
 }
 
@@ -108,5 +125,7 @@ func (b *bannerServiceImpl) DeleteBanner(id uuid.UUID) error {
 	if err != nil {
 		return fmt.Errorf("failed to delete banner: %w", err)
 	}
+
+	b.cache.Invalidate(id)
 	return nil
 }

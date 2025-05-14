@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gotask/api"
+	"gotask/internal/cache"
 	"gotask/internal/config"
 	"gotask/internal/database"
 	"gotask/internal/handlers"
@@ -25,6 +26,7 @@ type App struct {
 
 func New(cfg *config.Config, db database.Database) *App {
 	e := echo.New()
+
 	//решил убрать банер и инфу о старте сервера -_-
 	e.HideBanner = true
 	e.Logger.SetOutput(io.Discard)
@@ -69,7 +71,8 @@ func (a *App) Stop() error {
 
 func (a *App) initBannerHttpHandler() {
 	bannerPostgresRepo := repositories.NewBannerPostgresRepo(a.Db)
-	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo)
+	bannerCache := cache.NewBannerMemoryCache(time.Duration(a.Cfg.Server.CacheTTL * int(time.Minute)))
+	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo, bannerCache)
 	bannerHttpHandler := handlers.NewBannerHttpHandler(bannerServiceImpl)
 	bannerApiHandler := handlers.NewBannerApiHandler(bannerServiceImpl)
 

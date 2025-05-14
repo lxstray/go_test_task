@@ -13,7 +13,8 @@ type (
 	}
 
 	Server struct {
-		Port int
+		Port     int
+		CacheTTL int
 	}
 
 	Db struct {

@@ -1,5 +1,6 @@
 server:
   port: 8080
+  cache_ttl: 10 #минуты
 
 db:
   host: postgres_db
