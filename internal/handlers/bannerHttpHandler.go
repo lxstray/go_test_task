@@ -17,15 +17,15 @@ func NewBannerHttpHandler(bannerService services.BannerService) BannerHandler {
 	return &bannerHttpHandler{bannerService: bannerService}
 }
 
-//TODO: переделать работу с ошибками(отправлять их клиенту) и bannerApiHandler
-
 func (b *bannerHttpHandler) GetBannerAuction(c echo.Context) error {
 	geo := c.QueryParam("geo")
 	if geo == "" {
+		c.String(http.StatusBadRequest, "missing required parameter: geo")
 		return fmt.Errorf("missing required parameter: geo")
 	}
 	feature := c.QueryParam("feature")
 	if feature == "" {
+		c.String(http.StatusBadRequest, "missing required parameter: feature")
 		return fmt.Errorf("missing required parameter: feature")
 	}
 
@@ -36,6 +36,7 @@ func (b *bannerHttpHandler) GetBannerAuction(c echo.Context) error {
 
 	banner, err := b.bannerService.RunBannerAuction(geo, intFeature)
 	if err != nil {
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
 		return err
 	}
 

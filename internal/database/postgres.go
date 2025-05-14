@@ -45,3 +45,16 @@ func NewPostgresDB(cfg *config.Config) Database {
 func (p *postgresDB) GetDB() *gorm.DB {
 	return dbInstance.DB
 }
+
+func (p *postgresDB) CloseDB() error {
+	db, err := p.DB.DB()
+	if err != nil {
+		return err
+	}
+
+	if err := db.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}

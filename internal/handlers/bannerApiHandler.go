@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"gotask/api"
 	"gotask/internal/models"
 	"gotask/internal/services"
@@ -21,7 +22,8 @@ func NewBannerApiHandler(bannerService services.BannerService) api.ServerInterfa
 func (b *bannerApiHandler) GetBanners(c echo.Context) error {
 	banners, err := b.bannerService.GetAllBanners()
 	if err != nil {
-		return err
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return fmt.Errorf("failed to get banners: %w", err)
 	}
 
 	c.JSON(http.StatusOK, banners)
@@ -31,21 +33,23 @@ func (b *bannerApiHandler) GetBanners(c echo.Context) error {
 func (b *bannerApiHandler) CreateBanner(c echo.Context) error {
 	var newBanner models.Banner
 	if err := c.Bind(&newBanner); err != nil {
-		return err
+		c.String(http.StatusBadRequest, fmt.Sprintf("invalid request body: %s", err))
+		return fmt.Errorf("failed to bind request body: %w", err)
 	}
 
 	if err := b.bannerService.CreateBanner(&newBanner); err != nil {
-		return err
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return fmt.Errorf("failed to create banner: %w", err)
 	}
 
 	c.String(http.StatusOK, "banner created")
 	return nil
 }
 
-// TODO: работа над ошибками
 func (b *bannerApiHandler) DeleteBanner(c echo.Context, id openapi_types.UUID) error {
 	if err := b.bannerService.DeleteBanner(id); err != nil {
-		return err
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return fmt.Errorf("failed to delete banner %s: %w", id, err)
 	}
 
 	c.String(http.StatusOK, "banner deleted")
@@ -55,22 +59,24 @@ func (b *bannerApiHandler) DeleteBanner(c echo.Context, id openapi_types.UUID) e
 func (b *bannerApiHandler) GetBannerById(c echo.Context, id openapi_types.UUID) error {
 	banner, err := b.bannerService.GetBannerById(id)
 	if err != nil {
-		return err
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return fmt.Errorf("failed to get banner %s: %w", id, err)
 	}
 
 	c.JSON(http.StatusOK, banner)
 	return nil
 }
 
-// TODO: добавить проверок нового баннера
 func (b *bannerApiHandler) UpdateBanner(c echo.Context, id openapi_types.UUID) error {
 	var newBanner models.Banner
 	if err := c.Bind(&newBanner); err != nil {
-		return err
+		c.String(http.StatusBadRequest, fmt.Sprintf("invalid request body: %s", err))
+		return fmt.Errorf("failed to bind request body: %w", err)
 	}
 
 	if err := b.bannerService.UpdateBanner(id, &newBanner); err != nil {
-		return err
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return fmt.Errorf("failed to update banner %s: %w", id, err)
 	}
 
 	c.String(http.StatusOK, "banner updated")

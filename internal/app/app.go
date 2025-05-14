@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"gotask/api"
 	"gotask/internal/config"
@@ -9,6 +10,7 @@ import (
 	"gotask/internal/repositories"
 	"gotask/internal/services"
 	"io"
+	"time"
 
 	"log"
 
@@ -44,6 +46,25 @@ func (a *App) Run() {
 		panic(fmt.Errorf("%s: %w", op, err))
 	}
 
+}
+
+func (a *App) Stop() error {
+	const op = "app.Stop"
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := a.HTTPSrv.Shutdown(ctx); err != nil {
+		return fmt.Errorf("%s: failed to shutdown HTTP server: %w", op, err)
+	}
+	log.Println("HTTP server stopped successfully")
+
+	if err := a.Db.CloseDB(); err != nil {
+		return fmt.Errorf("%s: failed to close database connection: %w", op, err)
+	}
+	log.Println("Database connection closed successfully")
+
+	return nil
 }
 
 func (a *App) initBannerHttpHandler() {

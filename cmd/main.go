@@ -19,7 +19,6 @@ func main() {
 
 	application := app.New(cfg, db)
 
-	//TODO: если приложение запускается в горутине(как и должно быть), не выводится ошибки подключения к постгре
 	go application.Run()
 
 	//graceful shutdown
@@ -29,7 +28,9 @@ func main() {
 	sign := <-stop
 	log.Println("Stopping application", sign.String())
 
-	//TODO: добавить метод для shutdown если он вообще есть в echo
+	if err := application.Stop(); err != nil {
+		panic(err)
+	}
 
 	log.Println("Application stopped")
 }
