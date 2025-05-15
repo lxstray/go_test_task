@@ -1,103 +1,77 @@
 package repositories
 
 import (
+	"context"
 	"fmt"
-	"gotask/internal/database"
-	"gotask/internal/models"
+	"gotask/sqlc/db_generated"
 
-	"github.com/google/uuid"
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type bannerPostgresRepo struct {
-	db database.Database
+	db *db_generated.Queries
 }
 
-func NewBannerPostgresRepo(db database.Database) BannerRepo {
+func NewBannerPostgresRepo(db *db_generated.Queries) BannerRepo {
 	return &bannerPostgresRepo{db: db}
 }
 
-func (b *bannerPostgresRepo) SelectTopBanner(geo string, feature int) (*models.Banner, error) {
-	var banner models.Banner
-
-	result := b.db.GetDB().Where("geo = ? AND feature = ?", geo, feature).
-		Order("cpm DESC").
-		Limit(1).
-		First(&banner)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("no banner found for geo=%s and feature=%d", geo, feature)
+func (b *bannerPostgresRepo) SelectTopBanner(ctx context.Context, topBannerParams db_generated.SelectTopBannerParams) (*db_generated.Banner, error) {
+	banner, err := b.db.SelectTopBanner(ctx, topBannerParams)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("no banner found for geo=%s and feature=%d", topBannerParams.Geo, topBannerParams.Feature)
 		}
-		return nil, fmt.Errorf("database error: %w", result.Error)
+		return nil, fmt.Errorf("database error: %w", err)
 	}
-
 	return &banner, nil
 }
 
-func (b *bannerPostgresRepo) SelectAll() ([]*models.Banner, error) {
-	var banners []*models.Banner
-
-	result := b.db.GetDB().Find(&banners)
-	if result.Error != nil {
-		return nil, fmt.Errorf("database error: %w", result.Error)
+func (b *bannerPostgresRepo) SelectAll(ctx context.Context) (*[]db_generated.Banner, error) {
+	banners, err := b.db.SelectAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("database error: %w", err)
 	}
-
 	if len(banners) == 0 {
 		return nil, fmt.Errorf("no banners found")
 	}
-
-	return banners, nil
+	return &banners, nil
 }
 
-func (b *bannerPostgresRepo) SelectById(id uuid.UUID) (*models.Banner, error) {
-	var banner models.Banner
-
-	result := b.db.GetDB().Where("id = ?", id).First(&banner)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("banner with id=%s not found", id)
+func (b *bannerPostgresRepo) SelectById(ctx context.Context, id pgtype.UUID) (*db_generated.Banner, error) {
+	banner, err := b.db.SelectById(ctx, id)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return nil, fmt.Errorf("banner with id=%s not found", id.String())
 		}
-		return nil, fmt.Errorf("database error: %w", result.Error)
+		return nil, fmt.Errorf("database error: %w", err)
 	}
-
 	return &banner, nil
 }
 
-func (b *bannerPostgresRepo) Create(input *models.Banner) error {
-	result := b.db.GetDB().Create(input)
-	if result.Error != nil {
-		return fmt.Errorf("failed to create banner: %w", result.Error)
+func (b *bannerPostgresRepo) Create(ctx context.Context, input *db_generated.CreateBannerParams) (pgtype.UUID, error) {
+	newBanner, err := b.db.CreateBanner(ctx, *input)
+	if err != nil {
+		return pgtype.UUID{}, fmt.Errorf("failed to create banner: %w", err)
 	}
-	return nil
+	return newBanner.ID, nil
 }
 
-func (b *bannerPostgresRepo) Update(id uuid.UUID, input *models.Banner) error {
-	var existingBanner models.Banner
-
-	result := b.db.GetDB().Where("id = ?", id).First(&existingBanner)
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return fmt.Errorf("banner with id=%s not found", id)
+func (b *bannerPostgresRepo) Update(ctx context.Context, input *db_generated.UpdateBannerParams) error {
+	_, err := b.db.UpdateBanner(ctx, *input)
+	if err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			return fmt.Errorf("banner with id=%s not found", input.ID)
 		}
-		return fmt.Errorf("database error: %w", result.Error)
+		return fmt.Errorf("failed to update banner: %w", err)
 	}
-
-	result = b.db.GetDB().Model(&existingBanner).Updates(input)
-	if result.Error != nil {
-		return fmt.Errorf("failed to update banner: %w", result.Error)
-	}
-
 	return nil
 }
 
-func (b *bannerPostgresRepo) Delete(id uuid.UUID) error {
-	result := b.db.GetDB().Where("id = ?", id).Delete(&models.Banner{})
-	if result.Error != nil {
-		return fmt.Errorf("failed to delete banner: %w", result.Error)
-	}
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("banner with id=%s not found", id)
+func (b *bannerPostgresRepo) Delete(ctx context.Context, id pgtype.UUID) error {
+	err := b.db.DeleteBanner(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete banner: %w", err)
 	}
 	return nil
 }

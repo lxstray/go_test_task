@@ -25,6 +25,7 @@ type (
 		Dbname   string
 		Sslmode  string
 		Timezone string
+		Max_conn int
 	}
 )
 

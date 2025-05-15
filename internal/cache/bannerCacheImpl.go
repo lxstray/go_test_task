@@ -1,26 +1,26 @@
 package cache
 
 import (
-	"gotask/internal/models"
+	"gotask/sqlc/db_generated"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type BannerCacheKey struct {
 	Geo     string
-	Feature int
+	Feature int32
 }
 
 type cacheItem struct {
-	banner    *models.Banner
+	banner    *db_generated.Banner
 	expiresAt time.Time
 }
 
 type bannerMemoryCache struct {
 	cache      map[BannerCacheKey]cacheItem
-	bannerKeys map[uuid.UUID][]BannerCacheKey
+	bannerKeys map[pgtype.UUID][]BannerCacheKey
 	mutex      sync.RWMutex
 	defaultTTL time.Duration
 }
@@ -28,7 +28,7 @@ type bannerMemoryCache struct {
 func NewBannerMemoryCache(defaultTTL time.Duration) BannerCache {
 	cache := &bannerMemoryCache{
 		cache:      make(map[BannerCacheKey]cacheItem),
-		bannerKeys: make(map[uuid.UUID][]BannerCacheKey),
+		bannerKeys: make(map[pgtype.UUID][]BannerCacheKey),
 		defaultTTL: defaultTTL,
 	}
 
@@ -37,7 +37,7 @@ func NewBannerMemoryCache(defaultTTL time.Duration) BannerCache {
 	return cache
 }
 
-func (c *bannerMemoryCache) Get(geo string, feature int) (*models.Banner, bool) {
+func (c *bannerMemoryCache) Get(geo string, feature int32) (*db_generated.Banner, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
 
@@ -54,7 +54,7 @@ func (c *bannerMemoryCache) Get(geo string, feature int) (*models.Banner, bool) 
 	return item.banner, true
 }
 
-func (c *bannerMemoryCache) Set(geo string, feature int, banner *models.Banner, ttl time.Duration) {
+func (c *bannerMemoryCache) Set(geo string, feature int32, banner *db_generated.Banner, ttl time.Duration) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -71,7 +71,7 @@ func (c *bannerMemoryCache) Set(geo string, feature int, banner *models.Banner, 
 	c.bannerKeys[banner.ID] = append(c.bannerKeys[banner.ID], key)
 }
 
-func (c *bannerMemoryCache) Invalidate(id uuid.UUID) {
+func (c *bannerMemoryCache) Invalidate(id pgtype.UUID) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -88,7 +88,7 @@ func (c *bannerMemoryCache) InvalidateAll() {
 	defer c.mutex.Unlock()
 
 	c.cache = make(map[BannerCacheKey]cacheItem)
-	c.bannerKeys = make(map[uuid.UUID][]BannerCacheKey)
+	c.bannerKeys = make(map[pgtype.UUID][]BannerCacheKey)
 }
 
 func (c *bannerMemoryCache) cleanupLoop() {
@@ -106,7 +106,7 @@ func (c *bannerMemoryCache) cleanup() {
 
 	now := time.Now()
 
-	removedBannerKeys := make(map[uuid.UUID]bool)
+	removedBannerKeys := make(map[pgtype.UUID]bool)
 
 	for key, item := range c.cache {
 		if now.After(item.expiresAt) {

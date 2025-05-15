@@ -34,7 +34,7 @@ func (b *bannerHttpHandler) GetBannerAuction(c echo.Context) error {
 		return err
 	}
 
-	banner, err := b.bannerService.RunBannerAuction(geo, intFeature)
+	banner, err := b.bannerService.RunBannerAuction(c.Request().Context(), geo, int32(intFeature))
 	if err != nil {
 		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
 		return err

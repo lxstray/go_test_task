@@ -10,3 +10,4 @@ db:
   dbname: goTestTask
   sslmode: disable
   timezone: Europe/Minsk
+  max_conn: 10

@@ -1,8 +1,10 @@
 package database
 
-import "gorm.io/gorm"
+import (
+	"github.com/jackc/pgx/v5/pgxpool"
+)
 
 type Database interface {
-	GetDB() *gorm.DB
-	CloseDB() error
+	GetDB() *pgxpool.Pool
+	CloseDB()
 }

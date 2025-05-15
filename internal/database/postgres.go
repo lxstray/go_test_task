@@ -1,16 +1,16 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"gotask/internal/config"
 	"sync"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type postgresDB struct {
-	DB *gorm.DB
+	DB *pgxpool.Pool
 }
 
 var (
@@ -21,7 +21,7 @@ var (
 func NewPostgresDB(cfg *config.Config) Database {
 	once.Do(func() {
 		dsn := fmt.Sprintf(
-			"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
+			"host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s pool_max_conns=%d",
 			cfg.Db.Host,
 			cfg.Db.User,
 			cfg.Db.Password,
@@ -29,32 +29,24 @@ func NewPostgresDB(cfg *config.Config) Database {
 			cfg.Db.Port,
 			cfg.Db.Sslmode,
 			cfg.Db.Timezone,
+			cfg.Db.Max_conn,
 		)
 
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		pool, err := pgxpool.New(context.Background(), dsn)
 		if err != nil {
-			panic(err)
+			panic(fmt.Errorf("failed to create pgxpool: %w", err))
 		}
 
-		dbInstance = &postgresDB{DB: db}
+		dbInstance = &postgresDB{DB: pool}
 	})
 
 	return dbInstance
 }
 
-func (p *postgresDB) GetDB() *gorm.DB {
+func (p *postgresDB) GetDB() *pgxpool.Pool {
 	return dbInstance.DB
 }
 
-func (p *postgresDB) CloseDB() error {
-	db, err := p.DB.DB()
-	if err != nil {
-		return err
-	}
-
-	if err := db.Close(); err != nil {
-		return err
-	}
-
-	return nil
+func (p *postgresDB) CloseDB() {
+	p.DB.Close()
 }

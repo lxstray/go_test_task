@@ -10,6 +10,7 @@ import (
 	"gotask/internal/handlers"
 	"gotask/internal/repositories"
 	"gotask/internal/services"
+	"gotask/sqlc/db_generated"
 	"io"
 	"time"
 
@@ -61,16 +62,18 @@ func (a *App) Stop() error {
 	}
 	log.Println("HTTP server stopped successfully")
 
-	if err := a.Db.CloseDB(); err != nil {
-		return fmt.Errorf("%s: failed to close database connection: %w", op, err)
-	}
+	a.Db.CloseDB()
+
 	log.Println("Database connection closed successfully")
 
 	return nil
 }
 
 func (a *App) initBannerHttpHandler() {
-	bannerPostgresRepo := repositories.NewBannerPostgresRepo(a.Db)
+	dbPool := a.Db.GetDB()
+	queries := db_generated.New(dbPool)
+
+	bannerPostgresRepo := repositories.NewBannerPostgresRepo(queries)
 	bannerCache := cache.NewBannerMemoryCache(time.Duration(a.Cfg.Server.CacheTTL * int(time.Minute)))
 	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo, bannerCache)
 	bannerHttpHandler := handlers.NewBannerHttpHandler(bannerServiceImpl)

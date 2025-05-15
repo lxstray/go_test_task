@@ -1,13 +1,15 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"gotask/internal/cache"
-	"gotask/internal/models"
 	"gotask/internal/repositories"
+	"gotask/sqlc/db_generated"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type bannerServiceImpl struct {
@@ -22,7 +24,7 @@ func NewBannerServiceImpl(bannerRepo repositories.BannerRepo, cache cache.Banner
 	}
 }
 
-func (b *bannerServiceImpl) RunBannerAuction(geo string, feature int) (*models.Banner, error) {
+func (b *bannerServiceImpl) RunBannerAuction(ctx context.Context, geo string, feature int32) (*db_generated.Banner, error) {
 	if utf8.RuneCountInString(geo) != 2 {
 		return nil, fmt.Errorf("geo must be 2 symbols")
 	}
@@ -35,7 +37,7 @@ func (b *bannerServiceImpl) RunBannerAuction(geo string, feature int) (*models.B
 		return cachedBanner, nil
 	}
 
-	banner, err := b.bannerRepo.SelectTopBanner(geo, feature)
+	banner, err := b.bannerRepo.SelectTopBanner(ctx, db_generated.SelectTopBannerParams{Geo: geo, Feature: feature})
 	if err != nil {
 		return nil, err
 	}
@@ -47,27 +49,27 @@ func (b *bannerServiceImpl) RunBannerAuction(geo string, feature int) (*models.B
 	return banner, nil
 }
 
-func (b *bannerServiceImpl) GetAllBanners() ([]*models.Banner, error) {
-	banners, err := b.bannerRepo.SelectAll()
+func (b *bannerServiceImpl) GetAllBanners(ctx context.Context) (*[]db_generated.Banner, error) {
+	banners, err := b.bannerRepo.SelectAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all banners: %w", err)
 	}
 	return banners, nil
 }
 
-func (b *bannerServiceImpl) GetBannerById(id uuid.UUID) (*models.Banner, error) {
+func (b *bannerServiceImpl) GetBannerById(ctx context.Context, id uuid.UUID) (*db_generated.Banner, error) {
 	if id == uuid.Nil {
 		return nil, fmt.Errorf("invalid banner ID")
 	}
 
-	banner, err := b.bannerRepo.SelectById(id)
+	banner, err := b.bannerRepo.SelectById(ctx, converToPgtype(id))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get banner by ID: %w", err)
 	}
 	return banner, nil
 }
 
-func (b *bannerServiceImpl) CreateBanner(input *models.Banner) error {
+func (b *bannerServiceImpl) CreateBanner(ctx context.Context, input *db_generated.CreateBannerParams) error {
 	if input == nil {
 		return fmt.Errorf("banner input cannot be nil")
 	}
@@ -77,20 +79,17 @@ func (b *bannerServiceImpl) CreateBanner(input *models.Banner) error {
 	if input.Feature <= 0 || input.Feature >= 100 {
 		return fmt.Errorf("feature must be between 0 and 100")
 	}
-	if input.CPM < 0 {
-		return fmt.Errorf("CPM must be non-negative")
-	}
 
-	err := b.bannerRepo.Create(input)
+	id, err := b.bannerRepo.Create(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to create banner: %w", err)
 	}
 
-	b.cache.Invalidate(input.ID)
+	b.cache.Invalidate(id)
 	return nil
 }
 
-func (b *bannerServiceImpl) UpdateBanner(id uuid.UUID, input *models.Banner) error {
+func (b *bannerServiceImpl) UpdateBanner(ctx context.Context, id uuid.UUID, input *db_generated.CreateBannerParams) error {
 	if id == uuid.Nil {
 		return fmt.Errorf("invalid banner ID")
 	}
@@ -103,29 +102,40 @@ func (b *bannerServiceImpl) UpdateBanner(id uuid.UUID, input *models.Banner) err
 	if input.Feature <= 0 || input.Feature >= 100 {
 		return fmt.Errorf("feature must be between 0 and 100")
 	}
-	if input.CPM < 0 {
-		return fmt.Errorf("CPM must be non-negative")
-	}
 
-	err := b.bannerRepo.Update(id, input)
+	err := b.bannerRepo.Update(ctx, &db_generated.UpdateBannerParams{
+		ID:      converToPgtype(id),
+		Name:    input.Name,
+		Image:   input.Image,
+		Cpm:     input.Cpm,
+		Geo:     input.Geo,
+		Feature: input.Feature,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to update banner: %w", err)
 	}
 
-	b.cache.Invalidate(id)
+	b.cache.Invalidate(converToPgtype(id))
 	return nil
 }
 
-func (b *bannerServiceImpl) DeleteBanner(id uuid.UUID) error {
+func (b *bannerServiceImpl) DeleteBanner(ctx context.Context, id uuid.UUID) error {
 	if id == uuid.Nil {
 		return fmt.Errorf("invalid banner ID")
 	}
 
-	err := b.bannerRepo.Delete(id)
+	err := b.bannerRepo.Delete(ctx, converToPgtype(id))
 	if err != nil {
 		return fmt.Errorf("failed to delete banner: %w", err)
 	}
 
-	b.cache.Invalidate(id)
+	b.cache.Invalidate(converToPgtype(id))
 	return nil
+}
+
+func converToPgtype(u uuid.UUID) pgtype.UUID {
+	return pgtype.UUID{
+		Bytes: [16]byte(u),
+		Valid: true,
+	}
 }

@@ -1,16 +1,17 @@
 package repositories
 
 import (
-	"gotask/internal/models"
+	"context"
+	"gotask/sqlc/db_generated"
 
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type BannerRepo interface {
-	SelectTopBanner(geo string, feature int) (*models.Banner, error)
-	SelectAll() ([]*models.Banner, error)
-	SelectById(id uuid.UUID) (*models.Banner, error)
-	Create(input *models.Banner) error
-	Update(id uuid.UUID, input *models.Banner) error
-	Delete(id uuid.UUID) error
+	SelectTopBanner(ctx context.Context, topBannerParams db_generated.SelectTopBannerParams) (*db_generated.Banner, error)
+	SelectAll(ctx context.Context) (*[]db_generated.Banner, error)
+	SelectById(ctx context.Context, id pgtype.UUID) (*db_generated.Banner, error)
+	Create(ctx context.Context, input *db_generated.CreateBannerParams) (pgtype.UUID, error)
+	Update(ctx context.Context, input *db_generated.UpdateBannerParams) error
+	Delete(ctx context.Context, id pgtype.UUID) error
 }
