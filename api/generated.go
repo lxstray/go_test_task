@@ -57,6 +57,12 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// GetBannerAuctionParams defines parameters for GetBannerAuction.
+type GetBannerAuctionParams struct {
+	Geo     string `form:"geo" json:"geo"`
+	Feature int    `form:"feature" json:"feature"`
+}
+
 // CreateBannerJSONRequestBody defines body for CreateBanner for application/json ContentType.
 type CreateBannerJSONRequestBody = BannerInput
 
@@ -71,6 +77,9 @@ type ServerInterface interface {
 	// Создать новый баннер
 	// (POST /banners)
 	CreateBanner(ctx echo.Context) error
+	// Провести аукцион первой цены
+	// (GET /banners/auction)
+	GetBannerAuction(ctx echo.Context, params GetBannerAuctionParams) error
 	// Удалить баннер
 	// (DELETE /banners/{id})
 	DeleteBanner(ctx echo.Context, id openapi_types.UUID) error
@@ -102,6 +111,31 @@ func (w *ServerInterfaceWrapper) CreateBanner(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.CreateBanner(ctx)
+	return err
+}
+
+// GetBannerAuction converts echo context to params.
+func (w *ServerInterfaceWrapper) GetBannerAuction(ctx echo.Context) error {
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetBannerAuctionParams
+	// ------------- Required query parameter "geo" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "geo", ctx.QueryParams(), &params.Geo)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter geo: %s", err))
+	}
+
+	// ------------- Required query parameter "feature" -------------
+
+	err = runtime.BindQueryParameter("form", true, true, "feature", ctx.QueryParams(), &params.Feature)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter feature: %s", err))
+	}
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetBannerAuction(ctx, params)
 	return err
 }
 
@@ -183,6 +217,7 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 
 	router.GET(baseURL+"/banners", wrapper.GetBanners)
 	router.POST(baseURL+"/banners", wrapper.CreateBanner)
+	router.GET(baseURL+"/banners/auction", wrapper.GetBannerAuction)
 	router.DELETE(baseURL+"/banners/:id", wrapper.DeleteBanner)
 	router.GET(baseURL+"/banners/:id", wrapper.GetBannerById)
 	router.PUT(baseURL+"/banners/:id", wrapper.UpdateBanner)

@@ -5,6 +5,41 @@ info:
 servers:
   - url: /v1
 paths:
+  /banners/auction:
+    get:
+      summary: Провести аукцион первой цены
+      operationId: getBannerAuction
+      parameters:
+        - name: geo
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: feature
+          in: query
+          required: true
+          schema:
+            type: integer
+                   
+      responses:
+        '200':
+          description: Баннер найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Banner'
+        '404':
+          description: Баннер не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /banners:
     get:
       summary: Получить список баннеров

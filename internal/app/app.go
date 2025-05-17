@@ -76,10 +76,8 @@ func (a *App) initBannerHttpHandler() {
 	bannerPostgresRepo := repositories.NewBannerPostgresRepo(queries)
 	bannerCache := cache.NewBannerMemoryCache(time.Duration(a.Cfg.Server.CacheTTL * int(time.Minute)))
 	bannerServiceImpl := services.NewBannerServiceImpl(bannerPostgresRepo, bannerCache)
-	bannerHttpHandler := handlers.NewBannerHttpHandler(bannerServiceImpl)
 	bannerApiHandler := handlers.NewBannerApiHandler(bannerServiceImpl)
 
 	bannerRoutes := a.HTTPSrv.Group("v1")
-	bannerRoutes.GET("/banners/auction", bannerHttpHandler.GetBannerAuction)
 	api.RegisterHandlers(bannerRoutes, bannerApiHandler)
 }

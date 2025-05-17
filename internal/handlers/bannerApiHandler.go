@@ -19,6 +19,17 @@ func NewBannerApiHandler(bannerService services.BannerService) api.ServerInterfa
 	return &bannerApiHandler{bannerService: bannerService}
 }
 
+func (b *bannerApiHandler) GetBannerAuction(c echo.Context, params api.GetBannerAuctionParams) error {
+	banner, err := b.bannerService.RunBannerAuction(c.Request().Context(), params.Geo, int32(params.Feature))
+	if err != nil {
+		c.String(http.StatusInternalServerError, fmt.Sprintf("internal error: %s", err))
+		return err
+	}
+
+	c.JSON(http.StatusOK, banner)
+	return nil
+}
+
 func (b *bannerApiHandler) GetBanners(c echo.Context) error {
 	banners, err := b.bannerService.GetAllBanners(c.Request().Context())
 	if err != nil {
